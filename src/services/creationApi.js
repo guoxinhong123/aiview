@@ -42,7 +42,7 @@ function createMockResult({ mode, prompt, uploadedImage }) {
       prompt,
       title: prompt || '一个女生在花园里坐着',
       kind: 'image',
-      previewUrl: '/demo/garden-girl-result.png',
+      previewUrl: '/assets/garden-girl-result.png',
       downloadable: true,
       createdAt: now.toISOString()
     }
@@ -54,7 +54,7 @@ function createMockResult({ mode, prompt, uploadedImage }) {
     prompt,
     title: prompt || (mode === 'textVideo' ? '春日花园品牌宣传短片' : '让图片轻轻动起来'),
     kind: 'video',
-    previewUrl: uploadedImage || '/demo/garden-girl-result.png',
+    previewUrl: uploadedImage || '/assets/garden-girl-result.png',
     duration: mode === 'textVideo' ? '00:08' : '00:05',
     downloadable: false,
     createdAt: now.toISOString()

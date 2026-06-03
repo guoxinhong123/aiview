@@ -67,7 +67,7 @@ VITE_API_BASE_URL=http://localhost:8080
 ```text
 wan-ai-creator-vue3/
 ├─ public/
-│  ├─ demo/garden-girl-result.png
+│  ├─ assets/garden-girl-result.png
 │  └─ favicon.svg
 ├─ src/
 │  ├─ components/

@@ -197,7 +197,7 @@ async function regenerate(conversation) {
   <div class="app-shell">
     <header class="page-header">
       <div class="logo-group">
-        <span class="logo-mark"><Icon name="sparkle" /></span>
+        <span class="logo-mark"><img style="width: 36px;height: 36px;" src="../public/assets/ai.png" alt=""></span>
         <span>AI 高效创作</span>
       </div>
     </header>
@@ -205,7 +205,9 @@ async function regenerate(conversation) {
     <main class="chat-container">
       <div v-for="conversation in conversations" :key="conversation.id" class="chat-message" :class="conversation.type">
         <div v-if="conversation.type === 'user'" class="user-message">
-          <div class="user-avatar">U</div>
+          <div class="user-avatar">
+            <img style="width: 37px;" src="../public/assets/me-logo.png" alt="">
+          </div>
           <div class="user-content">
             <div class="user-prompt">{{ conversation.prompt }}</div>
             <div v-if="conversation.uploadedImage" class="user-uploaded-image">
@@ -215,9 +217,11 @@ async function regenerate(conversation) {
         </div>
 
         <div v-else class="ai-message">
-          <div class="ai-avatar">AI</div>
+          <div class="ai-avatar">
+            <img style="width: 50px;height: 50px;" src="../public/assets/ai-logo.png" alt="">
+          </div>
           <div v-if="conversation.generating" class="ai-generating">
-            <div class="spinner"></div>
+            <img style="width: 60px;" src="../public//assets/loading.gif" alt="">
             <strong>AI 正在创作 {{ conversation.progress || 0 }}%</strong>
             <div class="progress-track"><span :style="{ width: `${conversation.progress || 0}%` }"></span></div>
           </div>
@@ -259,7 +263,7 @@ async function regenerate(conversation) {
         </div>
       </div>
       <div v-if="conversations.length === 0" class="empty-state">
-        <div class="empty-icon"><Icon name="sparkle" /></div>
+        <div class="empty-icon"><img style="width: 60px;height: 60px;" src="../public/assets/ai.png" alt=""></div>
         <p>开始输入指令，AI 为您创作</p>
       </div>
     </main>
