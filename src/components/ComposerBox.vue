@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import Icon from './Icon.vue'
 
 const props = defineProps({
@@ -75,7 +76,7 @@ function handleFile(event) {
       <div class="footer-left">
         <div class="mode-select">
           <button class="mode-current" @click="showModes = !showModes">
-            {{ modeLabels[mode] }} <span>⌄</span>
+            {{ modeLabels[mode] }} <el-icon><ArrowDown /></el-icon>
           </button>
           <div v-if="showModes" class="mode-menu">
             <button
@@ -92,9 +93,9 @@ function handleFile(event) {
         </button>
         <input ref="fileInput" class="hidden-input" type="file" accept="image/*" @change="handleFile" />
 
-        <button class="inline-tool" :disabled="generating" @click="emit('optimize')">
+        <!-- <button class="inline-tool" :disabled="generating" @click="emit('optimize')">
           <Icon name="sparkle" /> 优化指令
-        </button>
+        </button> -->
       </div>
     </footer>
   </section>
