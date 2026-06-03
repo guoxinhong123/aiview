@@ -224,18 +224,33 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 
 .media-frame {
-  width: 334px;
-  height: 460px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 420px;
   position: relative;
   overflow: hidden;
   background: #eff4ee;
   border-radius: 12px;
 }
+/* 无 aspect-ratio 兜底（老数据 / 图片） */
+.media-frame:not([style*="aspect-ratio"]) {
+  aspect-ratio: 334 / 460;
+}
+/* 图片保持竖版构图 */
+.media-frame:not(.video) {
+  max-width: 334px;
+  max-height: 460px;
+  aspect-ratio: 334 / 460;
+}
 
-.media-frame > img {
+.media-frame > img,
+.media-frame > .result-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.result-video::-webkit-media-controls-panel {
+  background: linear-gradient(transparent, rgba(0,0,0,.6));
 }
 
 .cloud-download {
@@ -268,6 +283,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 .play-button {
   display: grid;
@@ -279,6 +295,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   color: #fff;
   background: rgba(17, 24, 39, .54);
   font-size: 21px;
+  transition: transform .15s, background .15s;
+}
+.video-overlay:hover .play-button {
+  transform: scale(1.1);
+  background: rgba(17, 24, 39, .72);
 }
 .duration {
   position: absolute;
@@ -518,7 +539,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 680px) {
   .app-shell { padding: 16px 16px 22px; }
   .user-message, .ai-message { max-width: 100%; }
-  .media-frame { width: min(70vw, 334px); height: auto; aspect-ratio: 334 / 460; }
+  .media-frame:not(.video) { width: min(70vw, 334px); height: auto; aspect-ratio: 334 / 460; }
+  .media-frame.video { width: min(90vw, 560px); height: auto; }
   .composer { min-height: 140px; }
   .optimized-hint { width: 100%; }
   .send-button { width: 50px; height: 50px; }

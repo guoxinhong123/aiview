@@ -123,6 +123,14 @@ function handleUpload(file) {
   reader.readAsDataURL(file)
 }
 
+function playVideo(event) {
+  // 从点击的 overlay 向上找到 media-frame，再找到其下的 video 元素
+  const mediaFrame = event.currentTarget.closest('.media-frame')
+  if (!mediaFrame) return
+  const video = mediaFrame.querySelector('video.result-video')
+  if (video) video.play()
+}
+
 function downloadResult(conversation) {
   const link = document.createElement('a')
   link.href = conversation.previewUrl
@@ -214,9 +222,28 @@ async function regenerate(conversation) {
             <div class="progress-track"><span :style="{ width: `${conversation.progress || 0}%` }"></span></div>
           </div>
           <div v-else class="ai-content">
-            <section class="media-frame" :class="{ video: conversation.kind === 'video' }">
-              <img :src="conversation.previewUrl" :alt="conversation.title" />
-              <div v-if="conversation.kind === 'video'" class="video-overlay">
+            <section
+              class="media-frame"
+              :class="{ video: conversation.kind === 'video' }"
+              :style="conversation.width ? { aspectRatio: `${conversation.width} / ${conversation.height}` } : {}"
+            >
+              <img v-if="conversation.kind !== 'video'" :src="conversation.previewUrl" :alt="conversation.title" />
+              <video
+                v-else
+                :src="conversation.previewUrl"
+                :poster="conversation.thumbnail"
+                controls
+                playsinline
+                class="result-video"
+                @playing="conversation.videoPlaying = true"
+                @pause="conversation.videoPlaying = false"
+                @ended="conversation.videoPlaying = false"
+              ></video>
+              <div
+                v-if="conversation.kind === 'video' && !conversation.videoPlaying"
+                class="video-overlay"
+                @click="playVideo($event)"
+              >
                 <span class="play-button">▶</span>
                 <span class="duration">{{ conversation.duration }}</span>
               </div>
