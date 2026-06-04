@@ -159,7 +159,10 @@ async function submitVideoTask({ prompt, mode, uploadedImage, imageFile }) {
     if (imageFile) {
       formData.append('input_reference', imageFile, imageFile.name)
     } else {
-      formData.append('image_reference', uploadedImage)
+      // 重新编辑/再次生成时无 File，base64 → Blob → input_reference
+      const blob = dataUrlToBlob(uploadedImage)
+      const ext = blob.type.split('/')[1] || 'png'
+      formData.append('input_reference', blob, `reference.${ext}`)
     }
   }
 
