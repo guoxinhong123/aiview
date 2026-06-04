@@ -14,7 +14,7 @@ const DEFAULT_PARAMS = {
   model: 'wan2.2',
   num_frames: 81,
   width: 1280,
-  height: 720,
+  height: 704,   // TI2V 5B 原生 720P = 1280×704
   num_inference_steps: 50,
   guidance_scale: 5.0
 }
@@ -70,14 +70,32 @@ async function mockGenerate(payload, onProgress) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  工具函数                                                            */
+/* ------------------------------------------------------------------ */
+
+/** dataURL (base64) → Blob，用于将上传图片转为可提交的文件 */
+function dataUrlToBlob(dataUrl) {
+  const [header, base64] = dataUrl.split(',')
+  const mime = (header.match(/:(.*?);/) || ['', 'image/png'])[1]
+  const bytes = atob(base64)
+  const buffer = new Uint8Array(bytes.length)
+  for (let i = 0; i < bytes.length; i++) {
+    buffer[i] = bytes.charCodeAt(i)
+  }
+  return new Blob([buffer], { type: mime })
+}
+
+/* ------------------------------------------------------------------ */
 /*  真实 API：提交 → 轮询 → 下载                                        */
 /* ------------------------------------------------------------------ */
 
 /**
  * 1. 提交视频生成任务
+ * @param {File|null}   imageFile    原始 File 对象，优先使用
+ * @param {string}      uploadedImage base64 dataURL，File 不可用时的兜底
  * @returns {Promise<string>} video_id
  */
-async function submitVideoTask({ prompt, mode, uploadedImage }) {
+async function submitVideoTask({ prompt, mode, uploadedImage, imageFile }) {
   const formData = new FormData()
   formData.append('model', DEFAULT_PARAMS.model)
   formData.append('num_frames', String(DEFAULT_PARAMS.num_frames))
@@ -85,13 +103,19 @@ async function submitVideoTask({ prompt, mode, uploadedImage }) {
   formData.append('height', String(DEFAULT_PARAMS.height))
   formData.append('num_inference_steps', String(DEFAULT_PARAMS.num_inference_steps))
   formData.append('guidance_scale', String(DEFAULT_PARAMS.guidance_scale))
+  formData.append('prompt', prompt)
 
-  // 拼接提示词（图生视频时把图片描述前置）
-  let finalPrompt = prompt
-  if (mode === 'imageVideo' && uploadedImage) {
-    finalPrompt = `参考上传图片，${prompt}`
+  // 图生视频：vLLM Omni 字段名为 input_reference（文件）
+  //         或 image_reference（base64 / URL）
+  if (mode === 'imageVideo' && (imageFile || uploadedImage)) {
+    if (imageFile) {
+      // 直接传原始 File → input_reference
+      formData.append('input_reference', imageFile, imageFile.name)
+    } else {
+      // "再次生成"时无 File，用 base64 → image_reference
+      formData.append('image_reference', uploadedImage)
+    }
   }
-  formData.append('prompt', finalPrompt)
 
   const response = await fetch(`${baseUrl}/v1/videos`, {
     method: 'POST',
@@ -197,11 +221,11 @@ export async function generateCreation(payload, onProgress = () => {}) {
     return mockGenerate(payload, onProgress)
   }
 
-  const { mode, prompt, uploadedImage } = payload
+  const { mode, prompt, uploadedImage, imageFile } = payload
 
   // 1. 提交任务
   onProgress(3)
-  const videoId = await submitVideoTask({ prompt, mode, uploadedImage })
+  const videoId = await submitVideoTask({ prompt, mode, uploadedImage, imageFile })
   onProgress(8)
 
   // 2. 轮询等待完成

@@ -12,6 +12,7 @@ const progress = ref(0)
 const hint = ref('')
 const toast = ref('')
 const uploadPreview = ref('')
+const uploadedFile = ref(null) // 原始 File 对象，直接传给 API
 const conversations = ref([])
 
 function notify(message) {
@@ -51,14 +52,16 @@ async function submit() {
 
   const currentPrompt = prompt.value
   const currentUploadPreview = uploadPreview.value
+  const currentUploadedFile = uploadedFile.value
   const currentMode = mode.value
-  
+
   prompt.value = ''
   uploadPreview.value = ''
+  uploadedFile.value = null
 
   try {
     const generated = await generateCreation(
-      { mode: currentMode, prompt: currentPrompt, uploadedImage: currentUploadPreview },
+      { mode: currentMode, prompt: currentPrompt, uploadedImage: currentUploadPreview, imageFile: currentUploadedFile },
       (value) => {
         progress.value = value
         const idx = conversations.value.findIndex(c => c.id === aiMessageId)
@@ -73,7 +76,8 @@ async function submit() {
         ...generated,
         id: aiMessageId,
         type: 'ai',
-        generating: false
+        generating: false,
+        uploadedImage: currentUploadPreview // 保留图片以便"再次生成"
       }
     }
     notify('创作完成')
@@ -115,9 +119,10 @@ function editAgain(conversation) {
 }
 
 function handleUpload(file) {
+  uploadedFile.value = file // 保留原始 File，直接给 API 用
   const reader = new FileReader()
   reader.onload = (event) => {
-    uploadPreview.value = String(event.target.result)
+    uploadPreview.value = String(event.target.result) // 仅用于预览显示
     notify('图片上传成功，可输入动态效果描述')
   }
   reader.readAsDataURL(file)
@@ -176,7 +181,8 @@ async function regenerate(conversation) {
         ...generated,
         id: aiMessageId,
         type: 'ai',
-        generating: false
+        generating: false,
+        uploadedImage: conversation.uploadedImage // 保留图片以便再次"再次生成"
       }
     }
     notify('创作完成')
