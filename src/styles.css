@@ -87,7 +87,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   width: min(100%, 924px);
   margin: 26px auto 0;
   flex: 1;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   display: flex;
   flex-direction: column;
   gap: 30px;
