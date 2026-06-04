@@ -90,7 +90,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 60px;
+  gap: 30px;
   padding-bottom: 160px;
 }
 

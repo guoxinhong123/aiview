@@ -86,36 +86,85 @@ function dataUrlToBlob(dataUrl) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  工具函数                                                            */
+/* ------------------------------------------------------------------ */
+
+/** 读取图片文件的实际宽高 */
+function getImageDimensions(source) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = reject
+    img.src = source instanceof File ? URL.createObjectURL(source) : source
+  })
+}
+
+/** 按图片原始比例计算输出尺寸，对齐 16 像素，约束在 720P 画幅内 */
+function fitDimensions(imgW, imgH) {
+  const MAX_AREA = 1280 * 704 // 720P 像素总量
+  const ratio = imgW / imgH
+
+  let outW, outH
+  if (ratio >= 1) {
+    // 横图：宽度撑满 1280
+    outW = Math.min(imgW, 1280)
+    outH = Math.round(outW / ratio)
+  } else {
+    // 竖图：高度撑满 704
+    outH = Math.min(imgH, 704)
+    outW = Math.round(outH * ratio)
+  }
+
+  // 确保不超过 720P 面积，下对齐 16
+  if (outW * outH > MAX_AREA) {
+    const scale = Math.sqrt(MAX_AREA / (outW * outH))
+    outW = Math.round(outW * scale)
+    outH = Math.round(outH * scale)
+  }
+  outW = Math.max(16, outW - (outW % 16))
+  outH = Math.max(16, outH - (outH % 16))
+
+  return { width: outW, height: outH }
+}
+
+/* ------------------------------------------------------------------ */
 /*  真实 API：提交 → 轮询 → 下载                                        */
 /* ------------------------------------------------------------------ */
 
 /**
  * 1. 提交视频生成任务
- * @param {File|null}   imageFile    原始 File 对象，优先使用
+ * @param {File|null}   imageFile    原始 File 对象
  * @param {string}      uploadedImage base64 dataURL，File 不可用时的兜底
- * @returns {Promise<string>} video_id
+ * @returns {Promise<{videoId: string, width: number, height: number}>}
  */
 async function submitVideoTask({ prompt, mode, uploadedImage, imageFile }) {
   const formData = new FormData()
   formData.append('model', DEFAULT_PARAMS.model)
   formData.append('num_frames', String(DEFAULT_PARAMS.num_frames))
-  formData.append('width', String(DEFAULT_PARAMS.width))
-  formData.append('height', String(DEFAULT_PARAMS.height))
   formData.append('num_inference_steps', String(DEFAULT_PARAMS.num_inference_steps))
   formData.append('guidance_scale', String(DEFAULT_PARAMS.guidance_scale))
   formData.append('prompt', prompt)
 
-  // 图生视频：vLLM Omni 字段名为 input_reference（文件）
-  //         或 image_reference（base64 / URL）
+  let videoWidth = DEFAULT_PARAMS.width
+  let videoHeight = DEFAULT_PARAMS.height
+
+  // 图生视频：按图片原始比例计算输出尺寸，避免内容变形
   if (mode === 'imageVideo' && (imageFile || uploadedImage)) {
+    const source = imageFile || uploadedImage
+    const dims = await getImageDimensions(source)
+    const fitted = fitDimensions(dims.width, dims.height)
+    videoWidth = fitted.width
+    videoHeight = fitted.height
+
     if (imageFile) {
-      // 直接传原始 File → input_reference
       formData.append('input_reference', imageFile, imageFile.name)
     } else {
-      // "再次生成"时无 File，用 base64 → image_reference
       formData.append('image_reference', uploadedImage)
     }
   }
+
+  formData.append('width', String(videoWidth))
+  formData.append('height', String(videoHeight))
 
   const response = await fetch(`${baseUrl}/v1/videos`, {
     method: 'POST',
@@ -133,7 +182,7 @@ async function submitVideoTask({ prompt, mode, uploadedImage, imageFile }) {
   if (!videoId) {
     throw new Error('服务端未返回 video_id')
   }
-  return videoId
+  return { videoId, width: videoWidth, height: videoHeight }
 }
 
 /**
@@ -225,7 +274,7 @@ export async function generateCreation(payload, onProgress = () => {}) {
 
   // 1. 提交任务
   onProgress(3)
-  const videoId = await submitVideoTask({ prompt, mode, uploadedImage, imageFile })
+  const { videoId, width, height } = await submitVideoTask({ prompt, mode, uploadedImage, imageFile })
   onProgress(8)
 
   // 2. 轮询等待完成
@@ -250,8 +299,8 @@ export async function generateCreation(payload, onProgress = () => {}) {
     title: result.prompt || prompt,
     kind: 'video',
     previewUrl: videoUrl,
-    width: DEFAULT_PARAMS.width,
-    height: DEFAULT_PARAMS.height,
+    width,
+    height,
     duration,
     downloadable: true,
     createdAt: new Date().toISOString()
